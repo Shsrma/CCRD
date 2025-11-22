@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login / Sign Up - Fraud Detection</title>
+    <link rel="stylesheet" href="style.css" />
+    <style>
+        .login-box {
+            /* Mimics the alert-card style */
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid #00f7ff;
+            padding: 40px;
+            border-radius: 15px;
+            width: 350px;
+            margin: 100px auto; 
+            backdrop-filter: blur(8px);
+            /* Retaining the subtle shadow added for consistency */
+            box-shadow: 0 0 25px rgba(0, 247, 255, 0.2); 
+            z-index: 10;
+            position: relative;
+            text-align: center;
+            transition: 0.3s;
+        }
+        /* Match the title style */
+        .login-box h2 {
+            font-family: 'Poppins', sans-serif;
+            font-size: 2rem;
+            color: #00f7ff; /* Primary accent color */
+            margin-bottom: 30px;
+            text-shadow: 0 0 10px #00f7ff;
+        }
+        /* Style for text inputs to match the theme */
+        .login-box input {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 15px;
+            border: 1px solid #00f7ff; /* Neon border */
+            border-radius: 8px; 
+            background: rgba(25, 43, 77, 0.6); /* Dark background (from hero-container) */
+            color: white;
+            box-sizing: border-box;
+            transition: border-color 0.3s;
+        }
+        .login-box input:focus {
+            outline: none;
+            border-color: #00eaff;
+            box-shadow: 0 0 10px #00eaff;
+        }
+        .login-box input::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+        /* Style for the primary login/signup button */
+        .login-box .btn {
+            width: 100%;
+            margin-top: 15px;
+            /* Inherits the bright blue style from style.css */
+            font-size: 1.1rem;
+        }
+        /* Adjusted toggle action style to match the requested look */
+        #toggle-action {
+            display: block;
+            margin-top: 25px;
+            font-size: 0.9em;
+            color: rgba(0, 247, 255, 0.7); /* Use light blue accent color */
+            cursor: pointer;
+            text-decoration: underline;
+            transition: color 0.3s;
+        }
+        #toggle-action:hover {
+            color: #00f7ff;
+        }
+        #message {
+            font-weight: 600;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="hero-container">
+
+        <!-- Floating shapes for animation -->
+        <div class="floating-shape shape1"></div>
+        <div class="floating-shape shape2"></div>
+        <div class="floating-shape shape3"></div>
+
+        <div class="login-box fade-in">
+            <h2 id="formTitle">System Login</h2>
+            <form id="authForm">
+                <input type="text" id="username" placeholder="Phone / Email / Username" required>
+                <input type="password" id="password" placeholder="Password" required>
+                
+                <!-- Confirm Password for Sign Up -->
+                <input type="password" id="confirmPassword" placeholder="Confirm Password" style="display:none;">
+
+                <div id="otp-section" style="display:none;">
+                    <input type="text" id="otp" placeholder="One-Time Code (OTP)" maxlength="6">
+                </div>
+
+                <button type="submit" class="btn" id="submitBtn">Log In</button>
+            </form>
+            <p id="message" style="margin-top: 15px;"></p>
+
+            <!-- Toggle Link -->
+            <a id="toggle-action">New user? Create an account (Sign Up)</a>
+        </div>
+        
+    </div>
+
+<script>
+    const formTitle = document.getElementById('formTitle');
+    const authForm = document.getElementById('authForm');
+    const submitBtn = document.getElementById('submitBtn');
+    const toggleAction = document.getElementById('toggle-action');
+    const confirmPasswordField = document.getElementById('confirmPassword');
+    const message = document.getElementById('message');
+    const usernameInput = document.getElementById('username');
+    const passwordInput = document.getElementById('password');
+
+    let isLoginMode = true;
+
+    function setStatus(msg, isError = false) {
+        message.textContent = msg;
+        message.style.color = isError ? 'red' : '#00f7ff';
+    }
+
+    function toggleAuthMode() {
+        isLoginMode = !isLoginMode;
+        
+        // Reset fields and sections
+        usernameInput.value = '';
+        passwordInput.value = '';
+        confirmPasswordField.value = '';
+
+        if (isLoginMode) {
+            formTitle.textContent = 'System Login';
+            submitBtn.textContent = 'Log In';
+            toggleAction.innerHTML = 'New user? Create an account (Sign Up)';
+            confirmPasswordField.style.display = 'none';
+            confirmPasswordField.required = false;
+        } else {
+            formTitle.textContent = 'Create Account (Sign Up)';
+            submitBtn.textContent = 'Sign Up';
+            toggleAction.innerHTML = 'Already have an account? Log In';
+            confirmPasswordField.style.display = 'block';
+            confirmPasswordField.required = true;
+        }
+        setStatus('');
+    }
+
+    async function handleLogin() {
+        const username = usernameInput.value;
+        const password = passwordInput.value;
+        
+        setStatus('Logging in...', false);
+
+        try {
+            const loginRes = await fetch("http://localhost:8000/login", {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            });
+
+            if (!loginRes.ok) {
+                const error = await loginRes.json();
+                setStatus(`❌ Login failed: ${error.detail}`, true);
+                return;
+            }
+
+            const data = await loginRes.json();
+            localStorage.setItem('access_token', data.access_token);
+            setStatus('✅ Login successful! Redirecting to Dashboard...', false);
+            // Using absolute path for navigation (fix for browser/iframe environments)
+            window.location.href = '/index.html'; 
+
+        } catch (e) {
+            setStatus('❌ Network error during login.', true);
+            console.error(e);
+        }
+    }
+
+    async function handleSignup() {
+        const username = usernameInput.value;
+        const password = passwordInput.value;
+        const confirmPassword = confirmPasswordField.value;
+
+        if (password !== confirmPassword) {
+            setStatus('🚨 Passwords do not match!', true);
+            return;
+        }
+
+        setStatus('Registering new user...', false);
+
+        try {
+            const signupRes = await fetch("http://localhost:8000/signup", {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            });
+
+            if (!signupRes.ok) {
+                const error = await signupRes.json();
+                setStatus(`❌ Sign Up failed: ${error.detail}`, true);
+                return;
+            }
+
+            setStatus('✅ Registration successful! Please log in.', false);
+            setTimeout(toggleAuthMode, 1500);
+
+        } catch (e) {
+            setStatus('❌ Network error during sign up.', true);
+            console.error(e);
+        }
+    }
+
+    authForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        if (isLoginMode) {
+            handleLogin();
+        } else {
+            handleSignup();
+        }
+    });
+
+    toggleAction.addEventListener('click', toggleAuthMode);
+    
+    // If a token already exists, redirect to dashboard
+    if (localStorage.getItem('access_token')) {
+        // Using absolute path for navigation (fix for browser/iframe environments)
+        window.location.href = '/index.html';
+    }
+</script>
+
+</body>
+</html>

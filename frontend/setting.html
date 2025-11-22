@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>System Settings</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <div class="floating-shape shape1"></div>
+    <div class="floating-shape shape2"></div>
+    <div class="floating-shape shape3"></div>
+
+    <div class="alerts-container fade-in">
+        <h1 class="title">⚙️ System Settings</h1>
+        <p class="subtitle">Manage real-time fraud detection parameters and global preferences.</p>
+
+        <div class="alert-card slide-up" id="threshold-card">
+            <h3>📈 Fraud Prediction Threshold (FR-13)</h3>
+            <p><strong>Current:</strong> <span id="currentThreshold">Fetching...</span></p>
+            <p>Set a value (0.0 - 1.0) to tune sensitivity (False Positives vs. False Negatives).</p>
+            
+            <input type="number" id="newThreshold" min="0.0" max="1.0" step="0.01" value="0.5" class="setting-input">
+            <button class="btn setting-btn" onclick="updateSetting('fraud_threshold', document.getElementById('newThreshold').value, 'statusThreshold')">Update Threshold</button>
+
+            <p id="statusThreshold" class="status-msg"></p>
+        </div>
+
+        <div class="alert-card slide-up">
+            <h3>🌐 Language Preference</h3>
+            <p><strong>Current:</strong> <span id="currentLanguage">Fetching...</span></p>
+            <p>Select the preferred language for system messages and translations.</p>
+            
+            <select id="newLanguage" class="setting-input">
+                <option value="en">English (en)</option>
+                <option value="es">Spanish (es)</option>
+                <option value="fr">French (fr)</option>
+            </select>
+            <button class="btn setting-btn" onclick="updateSetting('language', document.getElementById('newLanguage').value, 'statusLanguage')">Update Language</button>
+
+            <p id="statusLanguage" class="status-msg"></p>
+        </div>
+        
+        <div class="alert-card slide-up">
+            <h3>⏰ Time Zone Preference</h3>
+            <p><strong>Current:</strong> <span id="currentTimezone">Fetching...</span></p>
+            <p>Set the system display time zone (e.g., UTC, Europe/London).</p>
+            
+            <input type="text" id="newTimezone" placeholder="e.g., UTC, Europe/London" class="setting-input">
+            <button class="btn setting-btn" onclick="updateSetting('timezone', document.getElementById('newTimezone').value, 'statusTimezone')">Update Time Zone</button>
+
+            <p id="statusTimezone" class="status-msg"></p>
+        </div>
+
+
+        <p style="text-align: center; margin-top: 30px;"><a href="index.html" class="btn" style="background: #192b4d; color: #00f7ff; box-shadow: 0 0 10px #00f7ff;">← Back to Dashboard</a></p>
+
+    </div>
+
+<style>
+    .setting-input { padding: 10px; margin: 10px 0; border-radius: 5px; border: none; width: 250px; color: #000; display: block; }
+    .setting-btn { margin-top: 10px; display: inline-block; width: 250px; text-align: center; }
+    .status-msg { margin-top: 15px; font-size: 0.9em; font-weight: bold; }
+</style>
+
+<script>
+    const API_URL = "http://localhost:8000/global-settings";
+    const token = localStorage.getItem('access_token');
+    
+    if (!token) {
+        window.location.href = 'login.html';
+    }
+
+    function fetchCurrentSettings() {
+        fetch(API_URL, { headers: { 'Authorization': `Bearer ${token}` } })
+        .then(r => {
+            if (r.status === 401) { throw new Error('Unauthorized'); }
+            return r.json();
+        })
+        .then(settings => {
+            document.getElementById("currentThreshold").textContent = settings.fraud_threshold.toFixed(4);
+            document.getElementById("newThreshold").value = settings.fraud_threshold;
+            document.getElementById("currentLanguage").textContent = settings.language;
+            document.getElementById("newLanguage").value = settings.language;
+            document.getElementById("currentTimezone").textContent = settings.timezone;
+            document.getElementById("newTimezone").value = settings.timezone;
+        })
+        .catch(e => {
+            if (e.message === 'Unauthorized') {
+                alert('Session expired. Please log in again.');
+                localStorage.removeItem('access_token');
+                window.location.href = 'login.html';
+            }
+            console.error("Fetch Error:", e);
+        });
+    }
+
+    function updateSetting(type, value, statusElementId) {
+        const statusMessage = document.getElementById(statusElementId);
+        statusMessage.textContent = 'Updating...';
+        statusMessage.style.color = '#00f7ff';
+
+        // Validation for threshold
+        if (type === 'fraud_threshold') {
+            const numValue = parseFloat(value);
+            if (isNaN(numValue) || numValue < 0.0 || numValue > 1.0) {
+                statusMessage.textContent = "🚨 Invalid value. Must be between 0.0 and 1.0.";
+                statusMessage.style.color = 'red';
+                return;
+            }
+            value = numValue;
+        }
+
+        fetch(API_URL, {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}` 
+            },
+            body: JSON.stringify({ type: type, value: value })
+        })
+        .then(r => {
+            if (r.status === 401) { throw new Error('Unauthorized'); }
+            if (!r.ok) { return r.json().then(err => { throw new Error(err.detail || "API Error"); }); }
+            return r.json();
+        })
+        .then(data => {
+            statusMessage.textContent = `✅ Successfully updated ${type}. Current: ${data.settings[type].toFixed(4) || data.settings[type]}`;
+            statusMessage.style.color = '#00f7ff';
+            fetchCurrentSettings(); 
+        })
+        .catch(e => {
+            if (e.message === 'Unauthorized') {
+                alert('Session expired. Please log in again.');
+                localStorage.removeItem('access_token');
+                window.location.href = 'login.html';
+            }
+            statusMessage.textContent = `❌ Update failed: ${e.message}`;
+            statusMessage.style.color = 'red';
+            console.error("Update Error:", e);
+        });
+    }
+
+    fetchCurrentSettings();
+</script>
+
+</body>
+</html>
