@@ -1,5 +1,5 @@
 fastapi
-uvicorn
+uvicorn[standard]
 sqlalchemy
 pydantic
 scikit-learn
@@ -10,3 +10,5 @@ requests
 python-jose[cryptography]
 passlib[bcrypt]
 PyJWT
+python-multipart
+aiofiles

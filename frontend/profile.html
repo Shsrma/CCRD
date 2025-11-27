@@ -5,100 +5,41 @@
     <title>User Profile</title>
     <link rel="stylesheet" href="style.css">
     <style>
-        .profile-card {
-            background: rgba(0, 255, 255, 0.08);
-            border: 1px solid #00f7ff;
-            margin: 50px auto;
-            padding: 30px;
-            width: 70%;
-            max-width: 500px;
-            border-radius: 15px;
-            backdrop-filter: blur(6px);
-            text-align: left;
-            position: relative;
-            z-index: 5;
-            transition: 0.5s;
-        }
-        .profile-card h3 {
-            color: #00f7ff;
-            font-size: 1.8rem;
-            margin-bottom: 20px;
-        }
-        .profile-detail {
-            font-size: 1.1rem;
-            margin-bottom: 10px;
-        }
-        .profile-detail strong {
-            display: inline-block;
-            width: 120px;
-            color: white;
-            font-weight: 600;
-        }
-        #logoutBtn {
-            margin-top: 30px;
-            background: #f44336; /* Red color for logout */
-            box-shadow: 0px 0px 15px rgba(244, 67, 54, 0.5);
-            transition: 0.3s;
-            float: right;
-        }
-        #logoutBtn:hover {
-            transform: scale(1.05);
-            box-shadow: 0px 0px 20px #f44336;
-        }
+        /* your existing profile CSS */
     </style>
 </head>
-
 <body>
+<script src="config.js"></script>
 
-    <div class="floating-shape shape1"></div>
-    <div class="floating-shape shape2"></div>
-    <div class="floating-shape shape3"></div>
+<div class="floating-shape shape1"></div>
+<div class="floating-shape shape2"></div>
+<div class="floating-shape shape3"></div>
 
-    <div class="alerts-container fade-in">
-        <div class="profile-card slide-up">
-            <h3 id="welcomeHeader">Loading Profile...</h3>
-            
-            <div class="profile-detail"><strong>Username:</strong> <span id="profileUsername"></span></div>
-            <div class="profile-detail"><strong>User ID:</strong> <span id="profileId"></span></div>
-            <div class="profile-detail"><strong>Role:</strong> <span id="profileRole"></span></div>
-            <div class="profile-detail"><strong>Status:</strong> <span id="profileActive"></span></div>
-            
-            <button class="btn" id="logoutBtn">Log Out</button>
-            <a href="index.html" class="btn" style="background: #00f7ff; color: #000; margin-top: 30px; float: left;">← Dashboard</a>
-        </div>
+<div class="alerts-container fade-in">
+    <div class="profile-card slide-up">
+        <h3 id="welcomeHeader">Loading Profile...</h3>
+        <div class="profile-detail"><strong>Username:</strong> <span id="profileUsername"></span></div>
+        <div class="profile-detail"><strong>User ID:</strong> <span id="profileId"></span></div>
+        <div class="profile-detail"><strong>Role:</strong> <span id="profileRole"></span></div>
+        <div class="profile-detail"><strong>Status:</strong> <span id="profileActive"></span></div>
+        <button class="btn" id="logoutBtn">Log Out</button>
+        <a href="index.html" class="btn" style="background: #00f7ff; color: #000; margin-top: 30px; float: left;">← Dashboard</a>
     </div>
+</div>
 
 <script>
-    const token = localStorage.getItem('access_token');
-    
-    // Check for authentication
-    if (!token) {
-        window.location.href = 'login.html';
-    }
-
-    const API_URL = "http://localhost:8000/profile";
-    
-    // Log Out functionality
     document.getElementById('logoutBtn').addEventListener('click', () => {
         localStorage.removeItem('access_token');
-        // Redirect to login page
         window.location.href = 'login.html';
     });
 
-    // Fetch user profile data
-    fetch(API_URL, {
-        headers: { 'Authorization': `Bearer ${token}` }
-    })
-    .then(r => {
-        if (r.status === 401) { throw new Error('Unauthorized'); }
-        return r.json();
-    })
+    fetch(`${API_BASE_URL}/profile`, { headers: { 'Authorization': `Bearer ${token}` } })
+    .then(r => { if (r.status === 401) throw new Error('Unauthorized'); return r.json(); })
     .then(user => {
         document.getElementById('welcomeHeader').textContent = `Welcome, ${user.username}!`;
         document.getElementById('profileUsername').textContent = user.username;
         document.getElementById('profileId').textContent = user.id;
         document.getElementById('profileRole').textContent = user.role;
-        
         const statusElement = document.getElementById('profileActive');
         statusElement.textContent = user.is_active ? "Active" : "Inactive";
         statusElement.style.color = user.is_active ? '#00f7ff' : '#f44336';
@@ -108,12 +49,8 @@
             alert('Session expired. Please log in again.');
             localStorage.removeItem('access_token');
             window.location.href = 'login.html';
-        } else {
-            document.getElementById('welcomeHeader').textContent = 'Error loading profile.';
-            console.error("Profile Fetch Error:", e);
-        }
+        } else console.error(e);
     });
 </script>
-
 </body>
 </html>

@@ -7,22 +7,20 @@
 </head>
 
 <body>
+    <script src="config.js"></script>
 
     <div class="floating-shape shape1"></div>
     <div class="floating-shape shape2"></div>
     <div class="floating-shape shape3"></div>
 
     <div class="alerts-container fade-in">
-
         <h1 class="title">🚨 Fraud Alerts</h1>
         <p class="subtitle">Real-time fraud detection results</p>
 
         <div id="alerts-list"></div>
-        
         <p style="text-align: center; margin-top: 30px;">
             <a href="index.html" class="btn" style="background: #192b4d; color: #00f7ff; box-shadow: 0 0 10px #00f7ff;">← Back to Dashboard</a>
         </p>
-
     </div>
 
     <audio id="alertSound">
@@ -30,59 +28,38 @@
     </audio>
 
 <script>
-    const token = localStorage.getItem('access_token');
-    if (!token) {
-        window.location.href = 'login.html';
-    }
-
-    // Define the speech synthesis utility (Read-Out-Loud)
     const synth = window.speechSynthesis;
 
     function readOutAlert(id, score) {
-        if (!synth) {
-            alert("Text-to-speech not supported by your browser.");
-            return;
-        }
+        if (!synth) return;
         const text = `Warning! Fraud detected. Transaction ID ${id} with a fraud probability score of ${score.toFixed(4)}.`;
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.rate = 1.0;
-        synth.speak(utterance);
+        synth.speak(new SpeechSynthesisUtterance(text));
     }
-    
-    // Fetch and display alerts
-    fetch("http://localhost:8000/alerts", { headers: { 'Authorization': `Bearer ${token}` } })
+
+    fetch(`${API_BASE_URL}/alerts`, { headers: { 'Authorization': `Bearer ${token}` } })
     .then(r => {
-        if (r.status === 401) { throw new Error('Unauthorized'); }
+        if (r.status === 401) throw new Error('Unauthorized');
         return r.json();
     })
     .then(alerts => {
-
         const list = document.getElementById("alerts-list");
         const sound = document.getElementById("alertSound");
 
-        if (alerts.length > 0) {
-            sound.play();
-        }
+        if (alerts.length > 0) sound.play();
 
         alerts.forEach(a => {
             const card = document.createElement("div");
             card.className = "alert-card slide-up";
-
             const date = a.timestamp ? new Date(a.timestamp * 1000) : new Date();
-            const timeStr = date.toLocaleTimeString();
-            const dateStr = date.toLocaleDateString();
-
             card.innerHTML = `
                 <h3>⚠️ Fraud Detected</h3>
                 <p><strong>Transaction ID:</strong> ${a.transaction_id}</p>
                 <p><strong>Score:</strong> ${a.score.toFixed(4)}</p>
-                <p><strong>Time:</strong> ${dateStr} ${timeStr}</p>
-
+                <p><strong>Time:</strong> ${date.toLocaleDateString()} ${date.toLocaleTimeString()}</p>
                 <button class="btn" style="margin-top: 15px; padding: 8px 15px; font-size: 0.9rem; background: #ff5722;"
                     onclick="readOutAlert(${a.transaction_id}, ${a.score})">
                     🔊 Read Alert Details
-                </button>
-            `;
+                </button>`;
             list.appendChild(card);
         });
     })
@@ -94,6 +71,5 @@
         }
     });
 </script>
-
 </body>
 </html>
