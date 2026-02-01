@@ -11,4 +11,14 @@ python-jose[cryptography]
 passlib[bcrypt]
 PyJWT
 python-multipart
-aiofiles
+aiofiles 
+# fastapi
+# uvicorn
+# sqlalchemy
+# pydantic
+# pydantic-settings
+# passlib[bcrypt]
+# python-dotenv
+# PyJWT
+# scikit-learn
+# numpy
