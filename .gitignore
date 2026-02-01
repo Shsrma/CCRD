@@ -1,1 +1,81 @@
-node_modules
+# Git ignore file for CCRD project
+
+# Environment variables (NEVER commit secrets)
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+*.jks
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+ENV/
+env/
+.venv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+fraud.db
+
+# ML Models (keep git-lfs for production)
+*.pkl
+*.pickle
+*.joblib
+*.h5
+*.pth
+
+# Testing & Coverage
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# Logs
+logs/
+*.log
+
+# Build artifacts
+dist/
+build/
+
+# Node (frontend)
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# OS
+.DS_Store
+Thumbs.db

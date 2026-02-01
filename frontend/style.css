@@ -47,18 +47,37 @@ body {
     margin-top: 32px;
     padding: 14px 35px;
     font-size: 1.2rem;
-    color: #000;
     text-decoration: none;
-    background: #00f7ff;
     border-radius: 35px;
     font-weight: 600;
     display: inline-block;
     transition: 0.35s;
+    border: none;
+    cursor: pointer;
+    margin-right: 20px;
 }
 
-.btn:hover {
+.btn-primary {
+    color: #000;
+    background: #00f7ff;
+}
+
+.btn-primary:hover {
     box-shadow: 0px 0px 25px #00f7ff;
     transform: scale(1.08);
+}
+
+.btn-secondary {
+    background: #192b4d;
+    color: #00f7ff;
+    border: 2px solid #00f7ff;
+}
+
+.btn-secondary:hover {
+    box-shadow: 0px 0px 25px #00f7ff;
+    transform: scale(1.08);
+    background: #00f7ff;
+    color: #192b4d;
 }
 
 /* ALERTS PAGE */
@@ -76,6 +95,7 @@ body {
     padding: 20px;
     width: 70%;
     border-radius: 15px;
+    -webkit-backdrop-filter: blur(6px);
     backdrop-filter: blur(6px);
     transition: 0.3s;
     animation: slideUp 1.2s ease forwards;
