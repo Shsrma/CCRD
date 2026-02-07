@@ -48,6 +48,24 @@ class Settings(BaseSettings):
         "SCALER_PATH",
         "backend/ml/models/scaler.pkl"
     )
+    
+    # ML Training Configuration
+    random_seed: int = 42
+    test_size: float = 0.2
+    cv_folds: int = 5
+    imbalance_method: str = "class_weights"  # Options: 'class_weights', 'smote', 'adasyn', etc.
+    
+    # Model Evaluation Configuration
+    evaluation_metrics: list = ["accuracy", "precision", "recall", "f1", "roc_auc"]
+    
+    # Data Configuration
+    data_path: str = os.getenv(
+        "DATA_PATH",
+        "../data/creditcard.csv"
+    )
+    
+    # Model Selection Configuration
+    model_comparison_metrics: str = "f1"  # Metric to use for model selection
 
     # Logging
     log_level: str = os.getenv("LOG_LEVEL", "INFO")

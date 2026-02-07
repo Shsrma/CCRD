@@ -8,6 +8,13 @@ from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from typing import Annotated
+import os
+import sys
+from pathlib import Path
+
+# Add the backend directory to the path so we can import our modules
+BACKEND_DIR = Path(__file__).parent.parent
+sys.path.insert(0, str(BACKEND_DIR))
 
 from app.core.config import get_settings
 from app.core.logger import logger
@@ -16,7 +23,16 @@ from app.models import User
 from app.api.dependencies import get_current_user
 from app.api.routes import auth, transactions, alerts, settings as settings_routes
 
+from app.ml.trainer import ModelTrainer
+from app.ml.preprocessing import DataPreprocessor
+from app.core.config import get_settings
+import pickle
+
 settings = get_settings()
+
+# Global variables for ML model and scaler
+ml_model = None
+ml_scaler = None
 
 
 @asynccontextmanager
@@ -29,6 +45,25 @@ async def lifespan(app: FastAPI):
     logger.info("🚀 Starting Credit Card Fraud Detection API")
     create_all_tables()
     logger.info("✅ Database tables initialized")
+    
+    # Load ML model and scaler
+    global ml_model, ml_scaler
+    try:
+        model_path = settings.model_path
+        scaler_path = settings.scaler_path
+        
+        if os.path.exists(model_path) and os.path.exists(scaler_path):
+            with open(model_path, "rb") as f:
+                ml_model = pickle.load(f)
+            with open(scaler_path, "rb") as f:
+                ml_scaler = pickle.load(f)
+            logger.info(f"✅ Loaded ML model from {model_path}")
+            logger.info(f"✅ Loaded ML scaler from {scaler_path}")
+        else:
+            logger.warning(f"⚠️ ML model files not found at {model_path} and {scaler_path}")
+            logger.info("💡 Please train the model using: python -m ml.train_model")
+    except Exception as e:
+        logger.error(f"❌ Failed to load ML model: {str(e)}")
     
     yield
     
@@ -96,6 +131,8 @@ async def health_check():
     return {
         "status": "healthy",
         "version": settings.api_version,
+        "ml_model_loaded": ml_model is not None,
+        "scaler_loaded": ml_scaler is not None,
     }
 
 
@@ -150,6 +187,7 @@ async def root():
         "version": settings.api_version,
         "docs": "/docs",
         "openapi": "/openapi.json",
+        "ml_model_loaded": ml_model is not None,
     }
 
 

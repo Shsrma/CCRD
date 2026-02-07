@@ -1,15 +1,16 @@
 import os
 import pickle
 import numpy as np
+from app.core.config import get_settings
 
 
 # ----------------------------------------
 # Load ML Model + Scaler (Safe + Absolute Path)
 # ----------------------------------------
 def load_model():
-    base_dir = os.path.dirname(os.path.abspath(__file__))   # backend/
-    model_path = os.path.join(base_dir, "ml", "model.pkl")
-    scaler_path = os.path.join(base_dir, "ml", "scaler.pkl")
+    settings = get_settings()
+    model_path = settings.model_path
+    scaler_path = settings.scaler_path
 
     if not os.path.exists(model_path):
         raise FileNotFoundError(f"Model file not found: {model_path}")
@@ -43,3 +44,31 @@ def preprocess_input(data, scaler):
 
     # Scale features and return 1D vector
     return scaler.transform(X)[0]
+
+
+# ----------------------------------------
+# ML Prediction Helper
+# ----------------------------------------
+def predict_fraud(model, scaler, time, amount, features):
+    """
+    Make a fraud prediction.
+    
+    Args:
+        model: Trained ML model
+        scaler: Fitted scaler
+        time: Time of transaction
+        amount: Amount of transaction
+        features: List of additional features
+        
+    Returns:
+        Tuple of (prediction, probability)
+    """
+    # Preprocess input
+    X = np.array([time, amount] + features, dtype=float).reshape(1, -1)
+    X_scaled = scaler.transform(X)
+    
+    # Make prediction
+    prediction = model.predict(X_scaled)[0]
+    probability = model.predict_proba(X_scaled)[0][1]  # Probability of fraud
+    
+    return int(prediction), float(probability)
