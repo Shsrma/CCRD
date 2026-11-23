@@ -118,18 +118,19 @@ def preprocess_input(
 ) -> np.ndarray:
     """
     Preprocess transaction input into feature vector for ML model.
+    Kaggle credit card dataset feature ordering: [Time, V1..V28, Amount].
     
     Args:
         amount: Transaction amount
-        timestamp: Transaction timestamp
-        feature_vector: List of additional features
+        timestamp: Transaction timestamp (Time)
+        feature_vector: List of PCA features (V1..V28)
         
     Returns:
-        1D numpy array of preprocessed features
+        1D numpy array of preprocessed features in correct order
     """
     try:
-        # Combine all features
-        features = np.array([amount, timestamp] + feature_vector, dtype=float)
+        # Align with Kaggle dataset order: Time, V1..V28, Amount
+        features = np.array([timestamp] + list(feature_vector) + [amount], dtype=float)
         return features
     except (TypeError, ValueError) as e:
         logger.error(f"Feature preprocessing failed: {e}")

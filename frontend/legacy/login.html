@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login / Sign Up - Fraud Detection</title>
+    <link rel="stylesheet" href="style.css" />
+    <style>
+        /* ... your existing login CSS ... */
+    </style>
+</head>
+
+<body>
+    <script src="config.js"></script>
+
+    <div class="hero-container">
+        <div class="floating-shape shape1"></div>
+        <div class="floating-shape shape2"></div>
+        <div class="floating-shape shape3"></div>
+
+        <div class="login-box fade-in">
+            <h2 id="formTitle">System Login</h2>
+            <form id="authForm">
+                <input type="text" id="username" placeholder="Phone / Email / Username" required>
+                <input type="password" id="password" placeholder="Password" required>
+                <input type="password" id="confirmPassword" placeholder="Confirm Password" style="display:none;">
+                <div id="otp-section" style="display:none;">
+                    <input type="text" id="otp" placeholder="One-Time Code (OTP)" maxlength="6">
+                </div>
+                <button type="submit" class="btn" id="submitBtn">Log In</button>
+            </form>
+            <p id="message" style="margin-top: 15px;"></p>
+            <a id="toggle-action">New user? Create an account (Sign Up)</a>
+        </div>
+    </div>
+
+<script>
+    const formTitle = document.getElementById('formTitle');
+    const authForm = document.getElementById('authForm');
+    const submitBtn = document.getElementById('submitBtn');
+    const toggleAction = document.getElementById('toggle-action');
+    const confirmPasswordField = document.getElementById('confirmPassword');
+    const message = document.getElementById('message');
+    const usernameInput = document.getElementById('username');
+    const passwordInput = document.getElementById('password');
+
+    let isLoginMode = true;
+
+    function setStatus(msg, isError = false) {
+        message.textContent = msg;
+        message.style.color = isError ? 'red' : '#00f7ff';
+    }
+
+    function toggleAuthMode() {
+        isLoginMode = !isLoginMode;
+        usernameInput.value = '';
+        passwordInput.value = '';
+        confirmPasswordField.value = '';
+
+        if (isLoginMode) {
+            formTitle.textContent = 'System Login';
+            submitBtn.textContent = 'Log In';
+            toggleAction.innerHTML = 'New user? Create an account (Sign Up)';
+            confirmPasswordField.style.display = 'none';
+            confirmPasswordField.required = false;
+        } else {
+            formTitle.textContent = 'Create Account (Sign Up)';
+            submitBtn.textContent = 'Sign Up';
+            toggleAction.innerHTML = 'Already have an account? Log In';
+            confirmPasswordField.style.display = 'block';
+            confirmPasswordField.required = true;
+        }
+        setStatus('');
+    }
+
+    async function handleLogin() {
+        const username = usernameInput.value;
+        const password = passwordInput.value;
+        setStatus('Logging in...');
+
+        try {
+            const loginRes = await fetch(`${API_BASE_URL}/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            });
+
+            if (!loginRes.ok) {
+                const error = await loginRes.json();
+                setStatus(`❌ Login failed: ${error.detail}`, true);
+                return;
+            }
+
+            const data = await loginRes.json();
+            localStorage.setItem('access_token', data.access_token);
+            setStatus('✅ Login successful! Redirecting...', false);
+            window.location.href = 'index.html';
+
+        } catch (e) {
+            setStatus('❌ Network error during login.', true);
+            console.error(e);
+        }
+    }
+
+    async function handleSignup() {
+        const username = usernameInput.value;
+        const password = passwordInput.value;
+        const confirmPassword = confirmPasswordField.value;
+
+        if (password !== confirmPassword) {
+            setStatus('🚨 Passwords do not match!', true);
+            return;
+        }
+
+        setStatus('Registering new user...', false);
+
+        try {
+            const signupRes = await fetch(`${API_BASE_URL}/signup`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            });
+
+            if (!signupRes.ok) {
+                const error = await signupRes.json();
+                setStatus(`❌ Sign Up failed: ${error.detail}`, true);
+                return;
+            }
+
+            setStatus('✅ Registration successful! Please log in.', false);
+            setTimeout(toggleAuthMode, 1500);
+
+        } catch (e) {
+            setStatus('❌ Network error during sign up.', true);
+            console.error(e);
+        }
+    }
+
+    authForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        if (isLoginMode) handleLogin(); else handleSignup();
+    });
+
+    toggleAction.addEventListener('click', toggleAuthMode);
+
+    if (localStorage.getItem('access_token')) {
+        window.location.href = 'index.html';
+    }
+</script>
+
+</body>
+</html>

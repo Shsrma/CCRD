@@ -5,22 +5,25 @@ Security utilities: JWT token handling, password hashing, etc.
 import time
 from datetime import datetime, timedelta
 from typing import Optional
+import bcrypt
 import jwt
-from passlib.context import CryptContext
 from fastapi import HTTPException, status
-
-# Password hashing configuration
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 def hash_password(password: str) -> str:
-    """Hash a plaintext password using bcrypt."""
-    return pwd_context.hash(password)
+    """Hash a plaintext password using bcrypt directly."""
+    pwd_bytes = password.encode("utf-8")[:72]
+    salt = bcrypt.gensalt()
+    return bcrypt.hashpw(pwd_bytes, salt).decode("utf-8")
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Verify a plaintext password against its hash."""
-    return pwd_context.verify(plain_password, hashed_password)
+    """Verify a plaintext password against its bcrypt hash."""
+    try:
+        pwd_bytes = plain_password.encode("utf-8")[:72]
+        return bcrypt.checkpw(pwd_bytes, hashed_password.encode("utf-8"))
+    except Exception:
+        return False
 
 
 def create_access_token(
@@ -98,3 +101,27 @@ def decode_token(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid token"
         )
+
+
+def hash_api_key(raw_key: str) -> str:
+    """Cryptographically hash an API key with SHA-256 for secure database storage."""
+    import hashlib
+    return hashlib.sha256(raw_key.strip().encode("utf-8")).hexdigest()
+
+
+def generate_api_key(name: str = "default", environment: str = "live") -> tuple[str, str, str]:
+    """
+    Generate a secure B2B API Key.
+    Returns:
+        (raw_api_key, key_prefix, hashed_key)
+    Only the raw_api_key is returned to the client once.
+    The hashed_key is persisted in the database.
+    """
+    import secrets
+    env = "live" if environment == "live" else "test"
+    random_part = secrets.token_hex(20)
+    raw_key = f"ccrd_{env}_{random_part}"
+    prefix = raw_key[:14]  # e.g. "ccrd_live_3f9a"
+    hashed = hash_api_key(raw_key)
+    return raw_key, prefix, hashed
+

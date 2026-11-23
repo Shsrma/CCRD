@@ -32,12 +32,12 @@ def load_model():
 # ----------------------------------------
 def preprocess_input(data, scaler):
     """
-    Constructs the feature vector in correct order:
-    [time, amount, feature_1, feature_2, ..., feature_n]
+    Constructs the feature vector in correct order matching Kaggle schema:
+    [time, feature_1, feature_2, ..., feature_n, amount]
     """
 
-    # Convert to NumPy array to avoid shape bugs
-    X = np.array([data.time, data.amount] + data.features, dtype=float)
+    # Convert to NumPy array with correct order: [Time, Features, Amount]
+    X = np.array([data.time] + list(data.features) + [data.amount], dtype=float)
 
     # Reshape to (1, n) for sklearn
     X = X.reshape(1, -1)
@@ -63,8 +63,8 @@ def predict_fraud(model, scaler, time, amount, features):
     Returns:
         Tuple of (prediction, probability)
     """
-    # Preprocess input
-    X = np.array([time, amount] + features, dtype=float).reshape(1, -1)
+    # Preprocess input in Kaggle order: Time, Features, Amount
+    X = np.array([time] + list(features) + [amount], dtype=float).reshape(1, -1)
     X_scaled = scaler.transform(X)
     
     # Make prediction

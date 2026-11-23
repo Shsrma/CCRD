@@ -12,16 +12,20 @@ import os
 import sys
 from pathlib import Path
 
-# Add the backend directory to the path so we can import our modules
-BACKEND_DIR = Path(__file__).parent.parent
-sys.path.insert(0, str(BACKEND_DIR))
+# Add project root and backend directory to path so root and app modules are discoverable
+BACKEND_DIR = Path(__file__).resolve().parent.parent
+PROJECT_ROOT = BACKEND_DIR.parent
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+if str(BACKEND_DIR) not in sys.path:
+    sys.path.insert(1, str(BACKEND_DIR))
 
 from app.core.config import get_settings
 from app.core.logger import logger
 from app.database.engine import create_all_tables, get_db
 from app.models import User
 from app.api.dependencies import get_current_user
-from app.api.routes import auth, transactions, alerts, settings as settings_routes
+from app.api.routes import auth, transactions, alerts, settings as settings_routes, organizations
 
 from app.ml.trainer import ModelTrainer
 from app.ml.preprocessing import DataPreprocessor
@@ -119,27 +123,72 @@ async def general_exception_handler(request, exc: Exception):
 
 
 # ============================================================================
-# HEALTH CHECK
+# HEALTH & MODEL METADATA ENDPOINTS
 # ============================================================================
 
 @app.get("/health", tags=["System"])
-async def health_check():
+def health_check():
     """
     Health check endpoint.
     Returns 200 OK if service is operational.
     """
+    try:
+        from app.api.routes.transactions import fraud_engine
+    except ImportError:
+        from backend.app.api.routes.transactions import fraud_engine
     return {
         "status": "healthy",
         "version": settings.api_version,
-        "ml_model_loaded": ml_model is not None,
-        "scaler_loaded": ml_scaler is not None,
+        "product_model_operational": fraud_engine.is_operational(),
+        "model_version": fraud_engine.version,
     }
 
 
 @app.get("/api/v1/health", tags=["System"])
-async def health_check_v1():
-    """Health check for API v1."""
-    return {"status": "healthy"}
+def health_check_v1():
+    """Detailed health check for API v1."""
+    try:
+        from app.api.routes.transactions import fraud_engine
+    except ImportError:
+        from backend.app.api.routes.transactions import fraud_engine
+    return {
+        "status": "healthy",
+        "service": "CCRD Real-Time Fraud Intelligence API",
+        "version": settings.api_version,
+        "product_model_operational": fraud_engine.is_operational(),
+        "model_version": fraud_engine.version,
+    }
+
+
+@app.get("/api/v1/model/info", tags=["System"])
+def get_model_info():
+    """Returns active fraud detection model version, rules, and evaluation metrics."""
+    try:
+        from app.api.routes.transactions import fraud_engine
+    except ImportError:
+        from backend.app.api.routes.transactions import fraud_engine
+    metadata = fraud_engine.metadata
+    return {
+        "model_name": metadata.get("model_name", "logistic_regression_calibrated"),
+        "version": fraud_engine.version,
+        "is_operational": fraud_engine.is_operational(),
+        "threshold_config": {
+            "low_risk_upper_bound": fraud_engine.low_threshold,
+            "medium_risk_upper_bound": fraud_engine.high_threshold,
+            "default_action_threshold": 0.50,
+        },
+        "input_features": metadata.get("input_features", [
+            "amount", "currency", "merchant_category", "transaction_hour", "country",
+            "customer_age_days", "transactions_last_hour", "average_transaction_amount",
+            "failed_transactions_last_day", "device_trust_score"
+        ]),
+        "registered_rules": fraud_engine.rules_engine.get_registered_rules(),
+        "evaluation_metrics": metadata.get("evaluation_metrics", {}),
+        "synthetic_disclaimer": metadata.get("dataset_metadata", {}).get(
+            "synthetic_disclaimer",
+            "Synthetic transaction evaluation for demonstration."
+        ),
+    }
 
 
 # ============================================================================
@@ -151,17 +200,21 @@ app.include_router(auth.router, prefix="/api/v1/auth", tags=["Authentication"])
 
 # Protected routes
 app.include_router(
+    organizations.router,
+    prefix="/api/v1/organizations",
+    tags=["Organizations & Multi-Tenancy"],
+)
+
+app.include_router(
     transactions.router,
     prefix="/api/v1/transactions",
     tags=["Transactions"],
-    dependencies=[Depends(get_current_user)]
 )
 
 app.include_router(
     alerts.router,
     prefix="/api/v1/alerts",
     tags=["Alerts"],
-    dependencies=[Depends(get_current_user)]
 )
 
 app.include_router(
@@ -173,15 +226,16 @@ app.include_router(
 
 
 # ============================================================================
-# ROOT ENDPOINT
+# FRONTEND STATIC MOUNT & ROOT ENDPOINT
 # ============================================================================
 
-@app.get("/", tags=["System"])
-async def root():
-    """
-    API root endpoint.
-    Provides information about the API.
-    """
+from fastapi.staticfiles import StaticFiles
+
+frontend_dist = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "frontend", "dist"))
+
+@app.get("/api/info", tags=["System"])
+def api_info():
+    """Provides metadata about the running fraud intelligence API."""
     return {
         "name": settings.api_title,
         "version": settings.api_version,
@@ -189,6 +243,21 @@ async def root():
         "openapi": "/openapi.json",
         "ml_model_loaded": ml_model is not None,
     }
+
+if os.path.exists(frontend_dist):
+    logger.info(f"Serving built React frontend from {frontend_dist}")
+    app.mount("/", StaticFiles(directory=frontend_dist, html=True), name="frontend")
+else:
+    @app.get("/", tags=["System"])
+    def root():
+        return {
+            "name": settings.api_title,
+            "version": settings.api_version,
+            "docs": "/docs",
+            "openapi": "/openapi.json",
+            "ml_model_loaded": ml_model is not None,
+        }
+
 
 
 if __name__ == "__main__":

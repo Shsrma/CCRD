@@ -8,6 +8,16 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 import tempfile
 import os
+import sys
+from pathlib import Path
+
+# Ensure backend and project root are in path
+BACKEND_DIR = Path(__file__).resolve().parent.parent
+PROJECT_ROOT = BACKEND_DIR.parent
+if str(BACKEND_DIR) not in sys.path:
+    sys.path.insert(0, str(BACKEND_DIR))
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 from app.main import app
 from app.database.engine import Base, get_db
@@ -15,16 +25,16 @@ from app.core.security import hash_password
 from app.models import User
 
 
-# Use in-memory SQLite for tests
+# Use in-memory SQLite with StaticPool for fast, isolated tests without file locking
+from sqlalchemy.pool import StaticPool
+
 @pytest.fixture(scope="function")
 def test_db():
-    """Create a fresh test database for each test."""
-    db_fd, db_path = tempfile.mkstemp()
-    database_url = f"sqlite:///{db_path}"
-    
+    """Create a fresh in-memory test database for each test."""
     engine = create_engine(
-        database_url,
+        "sqlite:///:memory:",
         connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
     )
     
     TestingSessionLocal = sessionmaker(
@@ -43,13 +53,15 @@ def test_db():
             db.close()
     
     app.dependency_overrides[get_db] = override_get_db
+    session = TestingSessionLocal()
     
-    yield TestingSessionLocal()
-    
-    # Cleanup
-    app.dependency_overrides.clear()
-    os.close(db_fd)
-    os.unlink(db_path)
+    try:
+        yield session
+    finally:
+        session.close()
+        app.dependency_overrides.clear()
+        Base.metadata.drop_all(bind=engine)
+        engine.dispose()
 
 
 @pytest.fixture

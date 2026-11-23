@@ -10,6 +10,7 @@ from app.core.logger import logger
 from app.database.engine import get_db
 from app.models import User
 from app.schemas import GlobalSettings, SettingsUpdate
+from app.api.dependencies import get_current_user
 
 router = APIRouter()
 settings = get_settings()
@@ -23,7 +24,7 @@ system_settings = {
 
 
 @router.get("/", response_model=GlobalSettings)
-def get_settings(current_user: User = Depends()):
+def get_settings(current_user: User = Depends(get_current_user)):
     """Get current system settings."""
     return system_settings
 
@@ -31,7 +32,7 @@ def get_settings(current_user: User = Depends()):
 @router.patch("/", response_model=GlobalSettings)
 def update_settings(
     updates: GlobalSettings,
-    current_user: User = Depends(),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """

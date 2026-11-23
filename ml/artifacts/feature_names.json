@@ -1,0 +1,12 @@
+[
+  "amount",
+  "currency",
+  "merchant_category",
+  "transaction_hour",
+  "country",
+  "customer_age_days",
+  "transactions_last_hour",
+  "average_transaction_amount",
+  "failed_transactions_last_day",
+  "device_trust_score"
+]

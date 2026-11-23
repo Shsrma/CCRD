@@ -3,8 +3,9 @@ Application configuration management.
 Uses environment variables with sane defaults.
 """
 
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from functools import lru_cache
+from typing import Optional
 import os
 
 
@@ -73,10 +74,16 @@ class Settings(BaseSettings):
     # Feature Configuration
     enable_otp: bool = os.getenv("ENABLE_OTP", "true").lower() == "true"
     enable_translations: bool = os.getenv("ENABLE_TRANSLATIONS", "false").lower() == "true"
+    
+    # Optional external credentials (ignored if not used)
+    groq_api_key: Optional[str] = None
+    google_api_key: Optional[str] = None
 
-    class Config:
-        env_file = ".env"
-        case_sensitive = False
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        case_sensitive=False,
+        extra="ignore",
+    )
 
 
 @lru_cache()

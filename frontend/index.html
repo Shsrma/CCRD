@@ -1,27 +1,16 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
+  <head>
     <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233b82f6' stroke-width='2'><path d='M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z'/></svg>" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Fraud Detection Dashboard</title>
-    <link rel="stylesheet" href="style.css" />
-</head>
-
-<body>
-    <script src="config.js"></script>
-
-    <div class="hero-container">
-        <div class="floating-shape shape1"></div>
-        <div class="floating-shape shape2"></div>
-        <div class="floating-shape shape3"></div>
-
-        <div class="content">
-            <h1 class="title">Credit Card Fraud<br>Detection System</h1>
-            <p class="subtitle">Real-time alerts • ML-powered detection • Secure analytics</p>
-
-            <a href="alerts.html" class="btn btn-primary">View Fraud Alerts</a>
-            <a href="setting.html" class="btn btn-secondary">System Settings</a>
-        </div>
-    </div>
-</body>
+    <title>CCRD — Real-Time Fraud Intelligence Platform</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  </head>
+  <body class="bg-slate-950 text-slate-100 font-sans antialiased min-h-screen">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
 </html>

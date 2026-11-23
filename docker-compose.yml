@@ -22,8 +22,8 @@ services:
   # FastAPI Backend
   backend:
     build:
-      context: ./backend
-      dockerfile: ../Dockerfile
+      context: .
+      dockerfile: Dockerfile
     container_name: ccrd-api
     environment:
       DATABASE_URL: postgresql://ccrd_user:${DB_PASSWORD:-change_me}@postgres:5432/ccrd_db
